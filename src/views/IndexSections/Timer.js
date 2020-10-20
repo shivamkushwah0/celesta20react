@@ -43,7 +43,7 @@ class Timer extends React.Component
     render () {
         const {days , hours , minutes,seconds} = this.state;
         return (
-            <div>
+            <div style={{  textAlign: "center"}}>
                 <h1 className="d-flex justify-content-center countdown-head">FUN BEGINS IN</h1>
                 <Container className="countdown-wrapper text-white mt-5">
                     <Row className="row justify-content-center">
@@ -71,7 +71,7 @@ class Timer extends React.Component
                     </div>
                     </Row>
                 </Container>
-                <img class="rocket-object" src="http://salehriaz.com/404Page/img/rocket.svg" width="60px"></img>
+                <img class="rocket-object" src={require("../../assets/img/homeassets/rocket.svg")} width="60px"></img>
 
             </div>
         );
