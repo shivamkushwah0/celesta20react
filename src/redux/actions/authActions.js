@@ -18,7 +18,7 @@ export const registerUser = (data) => async (dispatch) => {
     dispatch({
       type: USER_LOADING,
     });
-    console.log("body");
+    console.log(data);
     const res = await Axios.post(`${serverUrl}/users/signup`, data);
     console.log("Signup successful");
     /*dispatch({
@@ -26,7 +26,7 @@ export const registerUser = (data) => async (dispatch) => {
       payload: { status: res.status },
     });*/
   } catch (err) {
-    console.log(err.response.data.message);
+    console.log(err.message);
     dispatch(
       returnErrors(
         err.response.data.message,

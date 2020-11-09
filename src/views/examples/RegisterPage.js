@@ -3,6 +3,7 @@ import classnames from "classnames";
 import { compose } from "redux";
 import { connect } from "react-redux";
 import { Alert } from "antd";
+import { Link } from "react-router-dom";
 
 // reactstrap components
 import {
@@ -23,7 +24,12 @@ import {
   Container,
   Row,
   Col,
-  Dropdown,ButtonDropdown, DropdownItem, DropdownMenu, DropdownToggle, InputGroupButtonDropdown
+  Dropdown,
+  ButtonDropdown,
+  DropdownItem,
+  DropdownMenu,
+  DropdownToggle,
+  InputGroupButtonDropdown,
 } from "reactstrap";
 
 // core components
@@ -33,7 +39,7 @@ import { USER_LOADING } from "redux/actions/types";
 import { registerUser } from "redux/actions/authActions";
 import { clearErrors } from "redux/actions/errorActions";
 import ValidatedLoginForm from "./ValidateLogin";
-
+import { serverUrl } from "../../config";
 class RegisterPage extends React.Component {
   state = {
     squares1to6: "",
@@ -43,41 +49,48 @@ class RegisterPage extends React.Component {
     name: "",
     sex: "Sex",
     college: "",
+    refId: "",
     phone: "",
-    msg: null,
-    dropdownOpen:false,
-
+    msg: "",
+    temp: "0",
+    dropdownOpen: false,
   };
   componentDidMount() {
     document.body.classList.toggle("register-page");
     document.documentElement.addEventListener("mousemove", this.followCursor);
     console.log(this.props.isLoading);
+    console.log(serverUrl);
   }
   componentDidUpdate(prevProps) {
     const { error, isAuthenticated } = this.props;
     const { name, email, password, college, sex, phone } = this.state;
     if (error !== prevProps.error) {
-      if(error.id==='REGISTER_FAIL'){
+      if (error.id === "REGISTER_FAIL") {
         if (!email || !password || !name || !college || !sex || !phone) {
           this.setState({
+            temp: "1",
             msg: "Please enter all fields",
           });
-        }
-        else if(error.status===403){
+        } else if (error.status === 403) {
           this.setState({
+            temp: "1",
             msg: "Email is already registered",
           });
+        } else if (error.status === 500) {
+          this.setState({
+            temp: "1",
+            msg: "Mail send failed.",
+          });
+        } else if (error.status === 404) {
+          this.setState({
+            temp: "1",
+            msg: "Please check your referral id",
+          });
+        } else {
+          this.setState({
+            msg: "",
+          });
         }
-       else if(error.status===500){
-        this.setState({
-          msg: "Mail send failed.",
-        });
-       }  
-       else {
-        this.setState({
-          msg: null,
-        });
-      }
       }
     }
     if (isAuthenticated) {
@@ -88,11 +101,11 @@ class RegisterPage extends React.Component {
     this.props.clearErrors();
     this.props.history.push("/");
   };
-  toggleDropDown=(e)=>{
-    console.log(e.value)
-    console.log(this.state.dropdownOpen)
-    this.setState({dropdownOpen:!this.state.dropdownOpen})
-  }
+  toggleDropDown = (e) => {
+    console.log(e.value);
+    console.log(this.state.dropdownOpen);
+    this.setState({ dropdownOpen: !this.state.dropdownOpen });
+  };
   componentWillUnmount() {
     document.body.classList.toggle("register-page");
     document.documentElement.removeEventListener(
@@ -120,7 +133,15 @@ class RegisterPage extends React.Component {
         "deg)",
     });
   };
-  handleCreate = (name, email, password, college, sex, phone) => {
+  handleCreate = async (
+    name,
+    email,
+    password,
+    college,
+    sex,
+    phone,
+    referralId
+  ) => {
     const user = {
       name,
       email,
@@ -128,32 +149,58 @@ class RegisterPage extends React.Component {
       college,
       sex,
       phone,
+      referralId,
     };
-    this.props.registerUser(user);
+    this.setState({
+      msg: "",
+    });
+    await this.props.registerUser(user);
+    if (this.state.msg === "") {
+      this.setState({
+        msg: "Registered Succesfully",
+      });
+      this.resetUserInputs();
+    }
+    //this.props.history.push("/");
+  };
+  resetUserInputs = () => {
+    console.log("Hello");
+    this.setState({
+      name: "",
+      email: "",
+      sex: "Sex",
+      phone: "",
+      password: "",
+      college: "",
+      refId: "",
+    });
+    console.log(this.state.name);
   };
   submitHandler = (e) => {
     e.preventDefault();
     let result;
-    if(this.state.sex=="Male")result=0;
-    else if(this.state.sex=="Female")result=1
-    else result=2
-  console.log(result)
+    if (this.state.sex == "Male") result = 0;
+    else if (this.state.sex == "Female") result = 1;
+    else result = 2;
+    console.log(result);
     const email = this.state.email;
     const password = this.state.password;
     const name = this.state.name;
     const college = this.state.college;
     const sex = result;
     const phone = this.state.phone;
-    this.handleCreate(name, email, password, college, sex, phone);
+    const refId = this.state.refId ? this.state.refId : "CLST0000";
+
+    this.handleCreate(name, email, password, college, sex, phone, refId);
   };
-  changeValue=(e)=>{ 
+  changeValue = (e) => {
     let result;
-     if(e.currentTarget.textContent=="Male")result=0;
-    else if(e.currentTarget.textContent=="Female")result=1
-    else result=2
-  console.log(result)
-    this.setState({sex:e.currentTarget.textContent})
-  }
+    if (e.currentTarget.textContent == "Male") result = 0;
+    else if (e.currentTarget.textContent == "Female") result = 1;
+    else result = 2;
+    console.log(result);
+    this.setState({ sex: e.currentTarget.textContent });
+  };
   render() {
     const { msg } = this.state;
     return (
@@ -182,7 +229,10 @@ class RegisterPage extends React.Component {
                           alt="..."
                           src={require("assets/img/square-purple-1.png")}
                         />
-                        <CardTitle tag="h4" className="ml-2">Register</CardTitle>
+
+                        <CardTitle tag="h4" className="ml-2">
+                          Register
+                        </CardTitle>
                         <Row>
                           <Button
                             className="btn-icon btn-round"
@@ -246,6 +296,7 @@ class RegisterPage extends React.Component {
                             <Input
                               placeholder="Full Name"
                               type="text"
+                              value={this.state.name}
                               onFocus={(e) =>
                                 this.setState({ fullNameFocus: true })
                               }
@@ -254,7 +305,6 @@ class RegisterPage extends React.Component {
                               }
                               onChange={(e) => {
                                 this.setState({ name: e.target.value });
-                                console.log(this.state.name);
                               }}
                             />
                           </InputGroup>
@@ -271,6 +321,7 @@ class RegisterPage extends React.Component {
                             <Input
                               placeholder="Email"
                               type="text"
+                              value={this.state.email}
                               onFocus={(e) =>
                                 this.setState({ emailFocus: true })
                               }
@@ -295,7 +346,8 @@ class RegisterPage extends React.Component {
                             </InputGroupAddon>
                             <Input
                               placeholder="Password"
-                              type="text"
+                              type="password"
+                              value={this.state.password}
                               onFocus={(e) =>
                                 this.setState({ passwordFocus: true })
                               }
@@ -304,6 +356,31 @@ class RegisterPage extends React.Component {
                               }
                               onChange={(e) =>
                                 this.setState({ password: e.target.value })
+                              }
+                            />
+                          </InputGroup>
+                          <InputGroup
+                            className={classnames({
+                              "input-group-focus": this.state.refIdFocus,
+                            })}
+                          >
+                            <InputGroupAddon addonType="prepend">
+                              <InputGroupText>
+                                <i className="fa fa-id-badge" />
+                              </InputGroupText>
+                            </InputGroupAddon>
+                            <Input
+                              placeholder="Referal Id(if any)"
+                              type="text"
+                              value={this.state.refId}
+                              onFocus={(e) =>
+                                this.setState({ refIdFocus: true })
+                              }
+                              onBlur={(e) =>
+                                this.setState({ refIdFocus: false })
+                              }
+                              onChange={(e) =>
+                                this.setState({ refId: e.target.value })
                               }
                             />
                           </InputGroup>
@@ -320,6 +397,7 @@ class RegisterPage extends React.Component {
                             <Input
                               placeholder="College"
                               type="text"
+                              value={this.state.college}
                               onFocus={(e) =>
                                 this.setState({ collegeFocus: true })
                               }
@@ -332,7 +410,7 @@ class RegisterPage extends React.Component {
                             />
                           </InputGroup>
 
-                            {/*<InputGroup
+                          {/*<InputGroup
                             className={classnames({
                               "input-group-focus": this.state.sexFocus,
                             })}
@@ -359,7 +437,7 @@ class RegisterPage extends React.Component {
                             <option value="male">Female</option>
                             <option value="male">Others</option>
                             </select>*/}
-                            
+
                           <InputGroup
                             className={classnames({
                               "input-group-focus": this.state.phoneFocus,
@@ -373,6 +451,7 @@ class RegisterPage extends React.Component {
                             <Input
                               placeholder="Phone-no"
                               type="text"
+                              value={this.state.phone}
                               onFocus={(e) =>
                                 this.setState({ phoneFocus: true })
                               }
@@ -385,45 +464,71 @@ class RegisterPage extends React.Component {
                             />
                           </InputGroup>
                           <InputGroup>
-        
-        <InputGroupButtonDropdown addonType="append" isOpen={this.state.dropdownOpen} toggle={this.toggleDropDown}>
-          <DropdownToggle caret>
-            {this.state.sex}
-          </DropdownToggle>
-          <DropdownMenu> 
-            <DropdownItem ><div onClick={this.changeValue}>Male</div></DropdownItem>
-            <DropdownItem divider />
-            <DropdownItem><div onClick={this.changeValue}>Female</div></DropdownItem>
-            <DropdownItem divider />
-            <DropdownItem><div onClick={this.changeValue}>Others</div></DropdownItem>
-          </DropdownMenu>
-        </InputGroupButtonDropdown>
-      </InputGroup>
-                          <FormGroup check className="text-left">
-                            <Label check>
-                              <Input type="checkbox" />
-                              <span className="form-check-sign" />I agree to the{" "}
-                              <a
-                                href="#pablo"
-                                onClick={(e) => e.preventDefault()}
-                              >
-                                terms and conditions
-                              </a>
-                              .
-                            </Label>
-                          </FormGroup>
+                            <InputGroupButtonDropdown
+                              addonType="append"
+                              isOpen={this.state.dropdownOpen}
+                              toggle={this.toggleDropDown}
+                            >
+                              <DropdownToggle caret>
+                                {this.state.sex}
+                              </DropdownToggle>
+                              <div>
+                                <DropdownMenu>
+                                  <DropdownItem>
+                                    <div onClick={this.changeValue}>Male</div>
+                                  </DropdownItem>
+
+                                  <DropdownItem>
+                                    <div onClick={this.changeValue}>Female</div>
+                                  </DropdownItem>
+
+                                  <DropdownItem>
+                                    <div onClick={this.changeValue}>Others</div>
+                                  </DropdownItem>
+                                </DropdownMenu>
+                              </div>
+                            </InputGroupButtonDropdown>
+                          </InputGroup>
                         </Form>
                       </CardBody>
-                      <CardFooter>
-                        <Button
-                          className="btn-round"
-                          color="primary"
-                          size="lg"
-                          onClick={this.submitHandler}
-                        >
-                          register
-                        </Button>
-                      </CardFooter>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-around",
+                        }}
+                      >
+                        <CardFooter>
+                          <Button
+                            className="btn-round"
+                            color="primary"
+                            size="lg"
+                            onClick={this.submitHandler}
+                          >
+                            register
+                          </Button>
+                          <Link to="/ca">
+                            <Button
+                              className="btn-round"
+                              color="primary"
+                              size="lg"
+                            >
+                              Register as CA?
+                            </Button>
+                          </Link>
+                        </CardFooter>
+
+                        {/* <a href={serverUrl + "ca"}>
+                          {" "}
+                          <Button
+                            className="btn-round"
+                            color="primary"
+                            size="lg"
+                          >
+                            Register as CA?
+                          </Button>
+                        </a> */}
+                      </div>
                     </Card>
                   </Col>
                 </Row>
